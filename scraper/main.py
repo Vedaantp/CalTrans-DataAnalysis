@@ -9,10 +9,10 @@ load_dotenv()
 
 BASE_URL = "https://pems.dot.ca.gov"
 TARGET_URL = "/?dnode=Clearinghouse&type={type}&district_id={district_id}&submit=Submit"
-TYPES = ["station_5min", "chp_incidents_day"]
+TYPES = ["station_5min", "meta", "chp_incidents_day"]
 DISCTRICTS = ["3", "4", "5", "6", "7", "8", "10", "11", "12"]
 ALL_DISTRICTS = "all"
-DATA = "data"
+RAW_DATA = "raw_data"
 USERNAME = os.getenv("EMAIL")
 PASSWORD = os.getenv("PASSWORD")
 
@@ -43,7 +43,7 @@ async def get_target_page(page: Page, target_url: str) -> None:
 async def download_data(page: Page, data_path: str) -> None:
     script_dir = Path(__file__).resolve().parent
     src_dir = script_dir.parent
-    data_dir = src_dir / DATA / data_path
+    data_dir = src_dir / RAW_DATA / data_path
     os.makedirs(data_dir, exist_ok=True)
 
     files = page.locator("table a[href*='download'][href*='Clearinghouse']")
@@ -56,6 +56,13 @@ async def download_data(page: Page, data_path: str) -> None:
         link_text = await file.text_content()
         link_text = link_text.strip()
         safe_name = link_text.replace(" ", "-")
+        target_file_path = data_dir / safe_name
+
+        if target_file_path.exists():
+            print(
+                f"[{data_path}] File {i + 1}/{file_count}: {safe_name} already exists. Skipping download."
+            )
+            continue
 
         print(f"[{data_path}] File {i + 1}/{file_count}: Downloading {safe_name}")
 
